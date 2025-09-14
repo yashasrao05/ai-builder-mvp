@@ -22,21 +22,32 @@ export default function BuilderLayout() {
   
   const builder = useBuilder();
 
-  // REMOVED AUTO-LOAD - Canvas will be empty on page reload/refresh
-  // This ensures the canvas starts empty every time the page loads
-  // useEffect(() => {
-  //   try {
-  //     const savedProject = localStorage.getItem('ai-builder-project');
-  //     if (savedProject) {
-  //       const success = builder.importProject(savedProject);
-  //       if (success) {
-  //         console.log('Auto-loaded saved project');
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to auto-load project:', error);
-  //   }
-  // }, [builder]);
+  // FIXED: Auto-load saved project on component mount (only once)
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadSavedProject = async () => {
+      try {
+        const savedProject = localStorage.getItem('ai-builder-project');
+        if (savedProject && mounted) {
+          const success = builder.importProject(savedProject);
+          if (success) {
+            console.log('Auto-loaded saved project');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to auto-load project:', error);
+      }
+    };
+
+    // Load project only once on mount
+    loadSavedProject();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []); // Empty dependency array - only run once on mount
+
 
   const handleExport = () => {
     try {

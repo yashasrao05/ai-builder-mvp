@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ComponentData, ComponentType, BuilderState, BuilderActions, ProjectData } from '@/lib/types';
 import { createDefaultComponent } from '@/lib/components';
 
@@ -14,9 +14,14 @@ export function useBuilder() {
   const [history, setHistory] = useState<ComponentData[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  
+  // Add ref to track initialization
+  const isInitialized = useRef(false);
 
-  // Save to history whenever components change
+  // Save to history whenever components change (but not during initialization)
   const saveToHistory = useCallback((newComponents: ComponentData[]) => {
+    if (!isInitialized.current) return; // Don't save to history during initialization
+    
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push([...newComponents]);
     setHistory(newHistory);
@@ -24,44 +29,51 @@ export function useBuilder() {
   }, [history, historyIndex]);
 
   const addComponent = useCallback((component: ComponentData) => {
-    const newComponents = [...components, component];
-    setComponents(newComponents);
-    saveToHistory(newComponents);
-  }, [components, saveToHistory]);
+    setComponents(prev => {
+      const newComponents = [...prev, component];
+      saveToHistory(newComponents);
+      return newComponents;
+    });
+  }, [saveToHistory]);
 
   const updateComponent = useCallback((id: string, updates: Partial<ComponentData>) => {
-    const newComponents = components.map(comp => 
-      comp.id === id ? { ...comp, ...updates } : comp
-    );
-    setComponents(newComponents);
-    
-    // Don't save to history for every small change (like dragging)
-    // Only save for significant changes
-    if (updates.props || updates.style) {
-      saveToHistory(newComponents);
-    }
-  }, [components, saveToHistory]);
+    setComponents(prev => {
+      const newComponents = prev.map(comp => 
+        comp.id === id ? { ...comp, ...updates } : comp
+      );
+      
+      // Only save to history for significant changes
+      if (updates.props || updates.style) {
+        saveToHistory(newComponents);
+      }
+      
+      return newComponents;
+    });
+  }, [saveToHistory]);
 
   const deleteComponent = useCallback((id: string) => {
-    const newComponents = components.filter(comp => comp.id !== id);
-    setComponents(newComponents);
-    saveToHistory(newComponents);
+    setComponents(prev => {
+      const newComponents = prev.filter(comp => comp.id !== id);
+      saveToHistory(newComponents);
+      return newComponents;
+    });
     
-    if (selectedComponentId === id) {
-      setSelectedComponentId(null);
-    }
-  }, [components, selectedComponentId, saveToHistory]);
+    setSelectedComponentId(prevSelected => 
+      prevSelected === id ? null : prevSelected
+    );
+  }, [saveToHistory]);
 
   const selectComponent = useCallback((id: string | null) => {
     setSelectedComponentId(id);
   }, []);
 
   const moveComponent = useCallback((id: string, position: ComponentData['position']) => {
-    const newComponents = components.map(comp =>
-      comp.id === id ? { ...comp, position } : comp
+    setComponents(prev =>
+      prev.map(comp =>
+        comp.id === id ? { ...comp, position } : comp
+      )
     );
-    setComponents(newComponents);
-  }, [components]);
+  }, []);
 
   const setCanvasSize = useCallback((size: { width: number; height: number }) => {
     setCanvasSizeState(size);
@@ -72,10 +84,9 @@ export function useBuilder() {
   }, []);
 
   const clearCanvas = useCallback(() => {
-    const newComponents: ComponentData[] = [];
-    setComponents(newComponents);
+    setComponents([]);
     setSelectedComponentId(null);
-    saveToHistory(newComponents);
+    saveToHistory([]);
   }, [saveToHistory]);
 
   const undo = useCallback(() => {
@@ -135,18 +146,31 @@ export function useBuilder() {
     return JSON.stringify(projectData, null, 2);
   }, [components, canvasSize]);
 
+  // FIXED: Import project with proper initialization handling
   const importProject = useCallback((data: string): boolean => {
     try {
       const projectData: ProjectData = JSON.parse(data);
       
       if (projectData.components && Array.isArray(projectData.components)) {
+        // Mark as not initialized during import
+        isInitialized.current = false;
+        
         setComponents(projectData.components);
-        saveToHistory(projectData.components);
         
         if (projectData.settings?.canvasSize) {
           setCanvasSizeState(projectData.settings.canvasSize);
         }
         setSelectedComponentId(null);
+        
+        // Update history properly during import
+        setHistory([[], projectData.components]);
+        setHistoryIndex(1);
+        
+        // Mark as initialized after import is complete
+        setTimeout(() => {
+          isInitialized.current = true;
+        }, 0);
+        
         return true;
       }
       
@@ -155,7 +179,7 @@ export function useBuilder() {
       console.error('Failed to import project:', error);
       return false;
     }
-  }, [saveToHistory]);
+  }, []); // Empty dependency array - this function doesn't depend on state
 
   // Helper function to create component from drag
   const createComponentFromDrag = useCallback((
@@ -174,9 +198,20 @@ export function useBuilder() {
     setDraggedComponentType(componentType || null);
   }, []);
 
+  // Initialize after first render
+  useEffect(() => {
+    isInitialized.current = true;
+  }, []);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if typing in inputs
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case 'z':
@@ -186,10 +221,6 @@ export function useBuilder() {
             } else {
               undo();
             }
-            break;
-          case 's':
-            e.preventDefault();
-            // Save functionality would go here
             break;
           case 'd':
             if (selectedComponentId) {
