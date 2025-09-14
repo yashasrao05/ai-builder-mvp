@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Home, Save, Download, Upload, Settings, Eye, EyeOff, Code, Smartphone, Monitor, Sparkles } from 'lucide-react';
+import { 
+  Home, Save, Download, Upload, Settings, Eye, EyeOff, Code, 
+  Smartphone, Monitor, Sparkles, Layers3, RotateCcw, Trash2
+} from 'lucide-react';
 import Link from 'next/link';
 import { useBuilder } from '@/hooks/useBuilder';
 import ComponentLibrary from '@/components/UI/ComponentLibrary';
 import Canvas from '@/components/UI/Canvas';
-import PreviewPanel from '@/components/UI/PreviewPanel';
+// REMOVED: import PreviewPanel from '@/components/UI/PreviewPanel';
 import PropertiesPanel from '@/components/UI/PropertiesPanel';
 import CodeGenerationModal from '@/components/CodeGeneration/CodeGenerationModal';
 
@@ -14,25 +17,26 @@ type PanelType = 'components' | 'properties';
 
 export default function BuilderLayout() {
   const [activePanel, setActivePanel] = useState<PanelType>('components');
-  const [showPreviewPanel, setShowPreviewPanel] = useState(true);
+  // REMOVED: const [showPreviewPanel, setShowPreviewPanel] = useState(true);
   const [showCodeModal, setShowCodeModal] = useState(false);
   
   const builder = useBuilder();
 
-  // Auto-load saved project on component mount
-  useEffect(() => {
-    try {
-      const savedProject = localStorage.getItem('ai-builder-project');
-      if (savedProject) {
-        const success = builder.importProject(savedProject);
-        if (success) {
-          console.log('Auto-loaded saved project');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to auto-load project:', error);
-    }
-  }, [builder]);
+  // REMOVED AUTO-LOAD - Canvas will be empty on page reload/refresh
+  // This ensures the canvas starts empty every time the page loads
+  // useEffect(() => {
+  //   try {
+  //     const savedProject = localStorage.getItem('ai-builder-project');
+  //     if (savedProject) {
+  //       const success = builder.importProject(savedProject);
+  //       if (success) {
+  //         console.log('Auto-loaded saved project');
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to auto-load project:', error);
+  //   }
+  // }, [builder]);
 
   const handleExport = () => {
     try {
@@ -47,7 +51,6 @@ export default function BuilderLayout() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      // Show success feedback
       showSuccessMessage('Project exported successfully!');
     } catch (error) {
       console.error('Export failed:', error);
@@ -88,42 +91,52 @@ export default function BuilderLayout() {
       const projectData = builder.exportProject();
       localStorage.setItem('ai-builder-project', projectData);
       
-      // Show success message
-      const button = document.querySelector('[data-save-button]') as HTMLButtonElement;
-      if (button) {
-        const originalText = button.textContent;
-        button.textContent = 'Saved!';
-        button.classList.add('text-green-600');
-        setTimeout(() => {
-          button.textContent = originalText;
-          button.classList.remove('text-green-600');
-        }, 2000);
-      }
+      showSuccessMessage('Project saved successfully!');
     } catch (error) {
       console.error('Save failed:', error);
       alert('Failed to save project. Please try again.');
     }
   };
 
+  // NEW: Reset Canvas Function
+  const handleResetCanvas = () => {
+    if (window.confirm('Are you sure you want to reset the canvas? This will clear all components and saved data. This action cannot be undone.')) {
+      // Clear all components from the canvas
+      builder.clearCanvas();
+      
+      // Clear all saved data from localStorage to ensure empty canvas on reload
+      localStorage.removeItem('ai-builder-project');
+      localStorage.removeItem('ai-builder-autosave');
+      
+      // Show success message
+      showSuccessMessage('Canvas reset successfully! The canvas will remain empty on page reload.');
+    }
+  };
+
   const showSuccessMessage = (message: string) => {
-    // Simple success toast - you could replace this with a proper toast library
     const toast = document.createElement('div');
     toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => {
-      document.body.removeChild(toast);
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast);
+      }
     }, 3000);
   };
 
-  // Auto-save every 30 seconds
+  // Modified auto-save - only saves if user has manually saved before
   useEffect(() => {
     const interval = setInterval(() => {
       if (builder.components.length > 0) {
         try {
-          const projectData = builder.exportProject();
-          localStorage.setItem('ai-builder-autosave', projectData);
-          console.log('Auto-saved project');
+          // Only auto-save if there's already a saved project
+          const existingSave = localStorage.getItem('ai-builder-project');
+          if (existingSave) {
+            const projectData = builder.exportProject();
+            localStorage.setItem('ai-builder-autosave', projectData);
+            console.log('Auto-saved project');
+          }
         } catch (error) {
           console.error('Auto-save failed:', error);
         }
@@ -131,12 +144,11 @@ export default function BuilderLayout() {
     }, 30000);
     
     return () => clearInterval(interval);
-  }, [builder]);
+  }, [builder.components, builder.exportProject]);
 
-  // Keyboard shortcuts
+  // Updated keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent shortcuts when typing in inputs
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
         return;
@@ -156,6 +168,10 @@ export default function BuilderLayout() {
             e.preventDefault();
             handleExport();
             break;
+          case 'r':
+            e.preventDefault();
+            handleResetCanvas();
+            break;
         }
       }
 
@@ -164,15 +180,19 @@ export default function BuilderLayout() {
         builder.setPreviewMode(!builder.isPreviewMode);
       }
 
-      // Toggle preview panel with 'V'
-      if (e.key === 'v' || e.key === 'V') {
-        setShowPreviewPanel(!showPreviewPanel);
+      // Delete selected component with 'Delete' key
+      if (e.key === 'Delete') {
+        if (builder.selectedComponentId) {
+          builder.deleteComponent(builder.selectedComponentId);
+        }
       }
+
+      // REMOVED: Toggle preview panel shortcut (V key) since preview panel is removed
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [builder, showPreviewPanel]);
+  }, [builder]);
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
@@ -212,7 +232,7 @@ export default function BuilderLayout() {
               }`}
               title="Undo (Ctrl+Z)"
             >
-              ↶
+              <RotateCcw className="w-4 h-4" />
             </button>
             <button
               onClick={builder.redo}
@@ -222,12 +242,25 @@ export default function BuilderLayout() {
                   ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' 
                   : 'text-gray-300 cursor-not-allowed'
               }`}
-              title="Redo (Ctrl+Shift+Z)"
+              title="Redo (Ctrl+Y)"
             >
-              ↷
+              <RotateCcw className="w-4 h-4 scale-x-[-1]" />
             </button>
           </div>
           
+          <div className="w-px h-6 bg-gray-300"></div>
+
+          {/* NEW: Reset Canvas Button */}
+          <button
+            onClick={handleResetCanvas}
+            disabled={builder.components.length === 0}
+            className="flex items-center space-x-2 px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Reset Canvas (Ctrl+R) - Clears all components and saved data"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Reset</span>
+          </button>
+
           <div className="w-px h-6 bg-gray-300"></div>
 
           {/* File Operations */}
@@ -262,8 +295,9 @@ export default function BuilderLayout() {
           {/* AI Code Generation */}
           <button
             onClick={() => setShowCodeModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-sm hover:shadow-md"
-            title="Generate React code (Ctrl+G)"
+            disabled={builder.components.length === 0}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+            title="Generate code (Ctrl+G)"
           >
             <Sparkles className="w-4 h-4" />
             <span>Generate Code</span>
@@ -271,20 +305,7 @@ export default function BuilderLayout() {
 
           <div className="w-px h-6 bg-gray-300"></div>
 
-          {/* View Options */}
-          <button
-            onClick={() => setShowPreviewPanel(!showPreviewPanel)}
-            className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-              showPreviewPanel 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-            title="Toggle preview panel (V)"
-          >
-            {showPreviewPanel ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            <span>Preview</span>
-          </button>
-
+          {/* Preview Mode */}
           <button
             onClick={() => builder.setPreviewMode(!builder.isPreviewMode)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
@@ -309,22 +330,24 @@ export default function BuilderLayout() {
             <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setActivePanel('components')}
-                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center ${
                   activePanel === 'components'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
+                <Layers3 className="w-4 h-4 mr-1" />
                 Components
               </button>
               <button
                 onClick={() => setActivePanel('properties')}
-                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center ${
                   activePanel === 'properties'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
+                <Settings className="w-4 h-4 mr-1" />
                 Properties
               </button>
             </div>
@@ -339,18 +362,25 @@ export default function BuilderLayout() {
               />
             )}
             {activePanel === 'properties' && (
-              <PropertiesPanel
-                selectedComponent={builder.selectedComponent}
-                onUpdateComponent={builder.updateComponent}
-                onDeleteComponent={builder.deleteComponent}
-                onDuplicateComponent={builder.duplicateComponent}
-                className="h-full"
-              />
+              <div className="h-full">
+                {builder.selectedComponent ? (
+                  <PropertiesPanel
+                    selectedComponent={builder.selectedComponent}
+                    onUpdateComponent={builder.updateComponent}
+                    onDeleteComponent={builder.deleteComponent}
+                    onDuplicateComponent={builder.duplicateComponent}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+                    Select a component to edit properties
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Canvas Area */}
+        {/* Canvas Area - FULL WIDTH (Preview Panel Removed) */}
         <div className="flex-1 flex flex-col">
           {/* Canvas Header */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -359,12 +389,6 @@ export default function BuilderLayout() {
               <div className="flex items-center space-x-2">
                 <button className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-200">
                   Desktop
-                </button>
-                <button className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors">
-                  Tablet
-                </button>
-                <button className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors">
-                  Mobile
                 </button>
               </div>
             </div>
@@ -388,8 +412,8 @@ export default function BuilderLayout() {
             </div>
           </div>
 
-          {/* Canvas */}
-          <div className="flex-1">
+          {/* Canvas - FULL WIDTH AND HEIGHT */}
+          <div className="flex-1 bg-gray-100">
             <Canvas
               components={builder.components}
               selectedComponentId={builder.selectedComponentId}
@@ -400,21 +424,13 @@ export default function BuilderLayout() {
               zoom={builder.zoom}
               onZoomChange={builder.setZoom}
               isPreviewMode={builder.isPreviewMode}
-              className="h-full"
+              className="h-full w-full"
             />
           </div>
         </div>
 
-        {/* Right Panel - Preview */}
-        {showPreviewPanel && (
-          <div className="w-80 shadow-sm">
-            <PreviewPanel
-              components={builder.components}
-              canvasSize={builder.canvasSize}
-              className="h-full"
-            />
-          </div>
-        )}
+        {/* REMOVED: Right Panel - Preview */}
+        {/* The preview panel has been completely removed to give canvas full width */}
       </div>
 
       {/* Code Generation Modal */}
@@ -424,10 +440,10 @@ export default function BuilderLayout() {
         components={builder.components}
       />
 
-      {/* Keyboard Shortcuts Help (Hidden by default) */}
+      {/* Updated Keyboard Shortcuts Help */}
       <div className="hidden">
         <div className="text-xs text-gray-500">
-          Shortcuts: Ctrl+S (Save), Ctrl+G (Generate), Ctrl+E (Export), P (Preview), V (Toggle Preview Panel)
+          Shortcuts: Ctrl+S (Save), Ctrl+G (Generate), Ctrl+E (Export), Ctrl+R (Reset), P (Preview), Delete (Delete Selected)
         </div>
       </div>
     </div>
