@@ -2,9 +2,9 @@
 
 import { ComponentData, ComponentType } from '@/lib/types';
 import DroppableCanvas from '@/components/DragDrop/DroppableCanvas';
-import ComponentRenderer from '@/components/Preview/ComponentRenderer';
+import ResizableComponent from '@/components/Canvas/ResizableComponent';
 import { useState, useCallback } from 'react';
-import { Grid, ZoomIn, ZoomOut, RotateCcw, RotateCw } from 'lucide-react';
+import { Grid, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 interface CanvasProps {
   components: ComponentData[];
@@ -172,16 +172,17 @@ export default function Canvas({
               </div>
             )}
 
-            {/* Render Components */}
+            {/* Render Components - ONLY USE ResizableComponent */}
             {components.length > 0 ? (
               components.map((component) => (
-                <ComponentRenderer
+                <ResizableComponent
                   key={component.id}
                   component={component}
                   isSelected={selectedComponentId === component.id && !isPreviewMode}
                   onSelect={onSelectComponent}
-                  isPreview={isPreviewMode}
+                  onUpdate={onUpdateComponent}
                   scale={1}
+                  isPreviewMode={isPreviewMode}
                 />
               ))
             ) : (

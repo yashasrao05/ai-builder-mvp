@@ -72,3 +72,103 @@ body {
 .component-item:active {
   cursor: grabbing;
 }
+
+/* Fix text selection visibility - Enhanced */
+*::selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+*::-moz-selection {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* Specific fixes for form elements */
+input::selection,
+select::selection,
+textarea::selection,
+option::selection {
+  background-color: #1d4ed8 !important;
+  color: white !important;
+}
+
+input::-moz-selection,
+select::-moz-selection,
+textarea::-moz-selection,
+option::-moz-selection {
+  background-color: #1d4ed8 !important;
+  color: white !important;
+}
+
+/* Focus states for better visibility */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Ensure dropdown options are visible */
+select {
+  background-color: white !important;
+  color: black !important;
+}
+
+select option {
+  background-color: white !important;
+  color: black !important;
+}
+
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* Fix for webkit browsers */
+select:focus option:checked {
+  background: #3b82f6 linear-gradient(0deg, #3b82f6 0%, #3b82f6 100%) !important;
+  color: white !important;
+}
+
+/* Input placeholder visibility */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+input:focus::placeholder,
+textarea:focus::placeholder {
+  color: #d1d5db !important;
+}
+
+/* Better contrast for text in inputs */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+textarea,
+select {
+  color: #1f2937 !important;
+}
+
+/* Fix for checkboxes */
+input[type="checkbox"]:checked {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 2px #3b82f6 !important;
+}
+
+/* Ensure text is visible when typing */
+input:focus,
+textarea:focus,
+select:focus {
+  background-color: white !important;
+  color: #1f2937 !important;
+}
