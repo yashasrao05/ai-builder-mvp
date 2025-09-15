@@ -1,4 +1,5 @@
 // Core component types
+
 export interface ComponentData {
   id: string;
   type: ComponentType;
@@ -29,16 +30,17 @@ export interface Position {
   zIndex?: number;
 }
 
-// Component type definitions
-export type ComponentType = 
-  | 'text' 
-  | 'button' 
-  | 'input' 
-  | 'container' 
-  | 'image' 
-  | 'hero' 
-  | 'card' 
-  | 'header';
+// Component type definitions - UPDATED to include form
+export type ComponentType =
+  | 'text'
+  | 'button'
+  | 'input'
+  | 'container'
+  | 'image'
+  | 'hero'
+  | 'card'
+  | 'header'
+  | 'form';
 
 export interface ComponentDefinition {
   type: ComponentType;

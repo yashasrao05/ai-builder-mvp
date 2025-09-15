@@ -1,19 +1,46 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
+  poweredByHeader: false,
+  compress: true,
+  
+  // Optimize for Vercel deployment
   experimental: {
-    // Enable if you need any experimental features
+    optimizeCss: true,
+    optimizeServerReact: true,
   },
-  // Ensure CSS is properly handled
-  webpack: (config, { isServer }) => {
-    // Handle CSS imports properly
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
-    }
-    return config;
+  
+  // Environment variables validation
+  env: {
+    CUSTOM_APP_NAME: 'AI Website Builder',
+    DEPLOYMENT_URL: process.env.VERCEL_URL || 'localhost:3000',
   },
-}
+  
+  // Redirect root to builder
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/builder',
+        permanent: false,
+      },
+    ];
+  },
+  
+  // API routes optimization
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
+          },
+        ],
+      },
+    ];
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

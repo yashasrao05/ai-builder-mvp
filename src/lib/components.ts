@@ -20,7 +20,6 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
       { key: 'tag', label: 'HTML Tag', type: 'select', options: ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span'] },
     ],
   },
-
   button: {
     type: 'button',
     label: 'Button',
@@ -41,7 +40,6 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
       { key: 'size', label: 'Size', type: 'select', options: ['small', 'medium', 'large'] },
     ],
   },
-
   input: {
     type: 'input',
     label: 'Input',
@@ -62,7 +60,6 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
       { key: 'required', label: 'Required', type: 'boolean' },
     ],
   },
-
   container: {
     type: 'container',
     label: 'Container',
@@ -85,7 +82,6 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
       { key: 'gap', label: 'Gap', type: 'select', options: ['0px', '8px', '16px', '24px', '32px'] },
     ],
   },
-
   image: {
     type: 'image',
     label: 'Image',
@@ -106,7 +102,6 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
       { key: 'fit', label: 'Object Fit', type: 'select', options: ['cover', 'contain', 'fill', 'none', 'scale-down'] },
     ],
   },
-
   hero: {
     type: 'hero',
     label: 'Hero Section',
@@ -129,7 +124,6 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
       { key: 'backgroundImage', label: 'Background Image', type: 'url', placeholder: 'https://...' },
     ],
   },
-
   card: {
     type: 'card',
     label: 'Card',
@@ -152,7 +146,6 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
       { key: 'buttonText', label: 'Button Text', type: 'text', placeholder: 'Button text...' },
     ],
   },
-
   header: {
     type: 'header',
     label: 'Header',
@@ -170,6 +163,33 @@ export const COMPONENT_DEFINITIONS: Record<ComponentType, ComponentDefinition> =
     editableProps: [
       { key: 'logo', label: 'Logo Text', type: 'text', placeholder: 'Logo...' },
       { key: 'ctaText', label: 'CTA Button Text', type: 'text', placeholder: 'CTA text...' },
+    ],
+  },
+  // NEW: Form Component
+  form: {
+    type: 'form',
+    label: 'Contact Form',
+    icon: '📋',
+    category: 'forms',
+    defaultProps: {
+      title: 'Get in Touch',
+      description: 'Send us a message and we\'ll get back to you soon.',
+      submitButtonText: 'Send Message',
+      includePhone: false,
+      includeCompany: false,
+      successMessage: 'Thank you! Your message has been sent.',
+    },
+    defaultStyle: {
+      className: 'bg-white p-6 rounded-lg shadow-lg border border-gray-200 max-w-md',
+    },
+    defaultSize: { width: 400, height: 500 },
+    editableProps: [
+      { key: 'title', label: 'Form Title', type: 'text', placeholder: 'Contact Us' },
+      { key: 'description', label: 'Description', type: 'textarea', placeholder: 'Form description...' },
+      { key: 'submitButtonText', label: 'Submit Button Text', type: 'text', placeholder: 'Submit' },
+      { key: 'includePhone', label: 'Include Phone Field', type: 'boolean' },
+      { key: 'includeCompany', label: 'Include Company Field', type: 'boolean' },
+      { key: 'successMessage', label: 'Success Message', type: 'text', placeholder: 'Success message...' },
     ],
   },
 };
@@ -196,7 +216,6 @@ export function generateComponentId(): string {
 // Default component factory
 export function createDefaultComponent(type: ComponentType, position?: { x: number; y: number }) {
   const definition = getComponentDefinition(type);
-  
   return {
     id: generateComponentId(),
     type,

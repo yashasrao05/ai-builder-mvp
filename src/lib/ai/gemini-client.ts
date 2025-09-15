@@ -188,50 +188,190 @@ Generate the code now:
   }
 
   private generateFallbackCode(request: GenerationRequest): { files: GeneratedFile[] } {
-    const { components, options } = request;
-    
-    // Generate a basic React component as fallback
-    const componentName = 'GeneratedApp';
-    const content = `
+  const { components, options } = request;
+  const hasFormComponent = components.some(comp => comp.type === 'form');
+
+  // Generate a basic React component as fallback
+  const componentName = 'GeneratedApp';
+  const content = `
 import React from 'react';
+${hasFormComponent ? "import { supabase } from './lib/supabase';" : ""}
+
 ${options.includeTypes ? "interface Props {}" : ""}
 
-${options.componentStyle === 'functional' ? 'const' : 'class'} ${componentName}${options.componentStyle === 'functional' ? ': React.FC<Props> = () => {' : ' extends React.Component<Props> {'} 
-  ${options.componentStyle === 'functional' ? 'return (' : 'render() { return ('}
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Generated Website
-        </h1>
-        
-        ${components.map((comp, index) => `
-        {/* Generated from ${comp.type} component */}
-        <div className="mb-6 p-4 bg-white rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Component ${index + 1}</h2>
-          <p className="text-gray-600">Type: ${comp.type}</p>
+${options.componentStyle === 'functional' ? 'const' : 'class'} ${componentName}${options.componentStyle === 'functional' ? ': React.FC = () => {' : ' extends React.Component {'}
+${options.componentStyle === 'functional' ? 'return (' : 'render() { return ('}
+  <div className="min-h-screen bg-gray-50 p-8">
+    <h1 className="text-3xl font-bold text-center mb-8">Generated Website</h1>
+    <div className="max-w-4xl mx-auto space-y-8">
+      ${components.map((comp, index) => `
+        <div key="${comp.id}" className="bg-white p-6 rounded-lg shadow-lg">
+          <h2 className="text-xl font-semibold mb-4">${comp.type.toUpperCase()} Component</h2>
+          <p className="text-gray-600">Component Type: ${comp.type}</p>
           ${comp.props && comp.props.text ? `<p className="mt-2">${comp.props.text}</p>` : ''}
         </div>
-        `).join('')}
-        
-      </div>
+      `).join('')}
     </div>
-  ${options.componentStyle === 'functional' ? ');' : '); }'}
+  </div>
+${options.componentStyle === 'functional' ? ');' : '); }'}
 ${options.componentStyle === 'functional' ? '};' : '}'}
 
 export default ${componentName};
-    `.trim();
+`.trim();
 
-    return {
-      files: [
-        {
-          path: `src/${componentName}.tsx`,
-          content,
-          type: 'component',
-          language: 'typescript',
-        },
-      ],
-    };
+  const baseFiles: GeneratedFile[] = [
+    {
+      path: `src/${componentName}.tsx`,
+      content,
+      type: 'component',
+      language: 'typescript',
+    },
+    {
+      path: 'src/styles.css',
+      content: `@import 'tailwindcss';
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
   }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(var(--background-end-rgb))
+  )
+  rgb(var(--background-start-rgb));
+}`,
+      type: 'styles',
+      language: 'css',
+    }
+  ];
+
+  // Add database files ONLY if form component exists
+  if (hasFormComponent) {
+    baseFiles.push(
+      {
+        path: 'src/lib/supabase.ts',
+        content: `import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseKey);`,
+        type: 'component',
+        language: 'typescript',
+      },
+      {
+        path: 'database-setup.sql',
+        content: `-- Create contacts table
+CREATE TABLE contacts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  message TEXT,
+  phone TEXT,
+  company TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS (Row Level Security)
+ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow public inserts
+CREATE POLICY "Allow public inserts" ON contacts
+  FOR INSERT TO anon
+  WITH CHECK (true);`,
+        type: 'config',
+        language: 'sql',
+      },
+      {
+        path: 'SETUP-GUIDE.md',
+        content: `# 🚀 Website Setup Guide
+
+## Quick Start (5 minutes)
+
+### 1. Create Supabase Database
+1. Go to [supabase.com](https://supabase.com)
+2. Create a new project
+3. Go to SQL Editor
+4. Copy and paste the SQL from \`database-setup.sql\`
+5. Click "Run"
+
+### 2. Configure Environment
+1. Copy your Supabase URL and API key
+2. Create \`.env.local\` file
+3. Add your keys (see .env.example)
+
+### 3. Deploy Website
+1. Upload code to Vercel/Netlify
+2. Add environment variables
+3. Your website is live!
+
+## Environment Variables
+\`\`\`
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+\`\`\`
+
+## Features
+- ✅ Contact form
+- ✅ Database storage
+- ✅ Mobile responsive
+- ✅ SEO optimized`,
+        type: 'readme',
+        language: 'markdown',
+      },
+      {
+        path: '.env.example',
+        content: `# Copy these from your Supabase project settings
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here`,
+        type: 'config',
+        language: 'bash',
+      },
+      {
+        path: 'package.json',
+        content: `{
+  "name": "generated-website",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build", 
+    "start": "next start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "next": "14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0", 
+    "typescript": "^5.0.0",
+    "tailwindcss": "^3.3.0"
+  }
+}`,
+        type: 'package',
+        language: 'json',
+      }
+    );
+  }
+
+  return { files: baseFiles };
+}
+
 }
 
 // Create singleton instance

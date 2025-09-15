@@ -6,13 +6,12 @@ import { ComponentData } from '@/lib/types';
 export async function POST(request: NextRequest) {
   try {
     console.log('API: Received code generation request');
-    
     const body = await request.json();
     console.log('API: Request body:', { componentsCount: body.components?.length, options: body.options });
-    
+
     // Validate request body
     const { components, options } = body;
-    
+
     if (!components || !Array.isArray(components)) {
       console.error('API: Invalid components array');
       return NextResponse.json(
@@ -55,19 +54,19 @@ export async function POST(request: NextRequest) {
     // Generate code using Gemini
     const result = await geminiClient.generateCode(generationRequest);
 
-    console.log('API: Generation result:', { 
-      success: result.success, 
+    console.log('API: Generation result:', {
+      success: result.success,
       filesCount: result.files?.length,
-      error: result.error 
+      error: result.error
     });
 
     if (!result.success) {
       console.error('API: Generation failed:', result.error);
       return NextResponse.json(
-        { 
+        {
           error: result.error || 'Code generation failed',
           fallback: true,
-          metadata: result.metadata 
+          metadata: result.metadata
         },
         { status: 500 }
       );
@@ -82,9 +81,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('API: Unexpected error:', error);
-    
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Internal server error',
         timestamp: new Date().toISOString(),
         details: 'Check server logs for more information'
