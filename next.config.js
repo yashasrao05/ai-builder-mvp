@@ -16,16 +16,11 @@ const nextConfig = {
     DEPLOYMENT_URL: process.env.VERCEL_URL || 'localhost:3000',
   },
   
-  // Redirect root to builder
+
   async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/',
-        permanent: false,
-      },
-    ];
+    return []; // remove the pointless redirect
   },
+
   
   // API routes optimization
   async headers() {
