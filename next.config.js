@@ -21,7 +21,7 @@ const nextConfig = {
     return [
       {
         source: '/',
-        destination: '/builder',
+        destination: '/',
         permanent: false,
       },
     ];
